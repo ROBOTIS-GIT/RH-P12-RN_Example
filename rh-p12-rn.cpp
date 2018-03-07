@@ -31,7 +31,7 @@
 using namespace std;
 
 /* ROWS */
-#define ROW_MODE_TORQUE         6
+#define ROW_MODE_CURRENT        6
 #define ROW_MODE_POSITION       7
 
 #define ROW_TORQUE_ON_OFF       10
@@ -41,7 +41,7 @@ using namespace std;
 #define ROW_CTRL_REPEAT         15
 #define ROW_CTRL_GOAL_POSITION  16
 
-#define ROW_GOAL_TORQUE         19
+#define ROW_GOAL_CURRENT        19
 #define ROW_GOAL_VELOCITY       20
 #define ROW_GOAL_ACCELERATION   21
 #define ROW_GOAL_POSITION       22
@@ -55,7 +55,7 @@ using namespace std;
 #define ADDR_TORQUE_ENABLE      562
 #define ADDR_GOAL_POSITION      596
 #define ADDR_GOAL_VELOCITY      600
-#define ADDR_GOAL_TORQUE        604
+#define ADDR_GOAL_CURRENT       604
 #define ADDR_GOAL_ACCELERATION  606
 #define ADDR_MOVING             610
 
@@ -69,8 +69,8 @@ using namespace std;
 #define MIN_VELOCITY            0
 #define MAX_VELOCITY            1023
 
-#define MIN_TORQUE              0
-#define MAX_TORQUE              820
+#define MIN_CURRENT             0
+#define MAX_CURRENT             820
 
 
 #define PROTOCOL_VERSION        2.0
@@ -85,7 +85,7 @@ using namespace std;
 #endif
 
 enum MODE {
-  MODE_TORQUE_CTRL = 0,
+  MODE_CURRENT_CTRL = 0,
   MODE_POSITION_CTRL = 5
 };
 
@@ -114,7 +114,7 @@ bool g_flag_repeat_thread = false;
 int g_goal_position       = 740;
 int g_goal_velocity       = 0;
 int g_goal_acceleration   = 0;
-int g_goal_torque         = 30;
+int g_goal_current        = 30;
 
 dynamixel::PacketHandler  *g_packet_handler = NULL;
 dynamixel::PortHandler    *g_port_handler   = NULL;
@@ -162,10 +162,10 @@ void repeatThreadFunc(int val)
           g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_POSITION, 
                                            (_direction < 0)? MIN_POSITION:MAX_POSITION);
         }
-        else  // MODE_TORQUE_CTRL
+        else  // MODE_CURRENT_CTRL
         {
-          g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_TORQUE, 
-                                           g_goal_torque * _direction);
+          g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT,
+                                           g_goal_current * _direction);
         }
         
         _direction = (-1) * (_direction);
@@ -202,8 +202,8 @@ void drawPage(void)
     g_goal_velocity = _data32;
   if (g_packet_handler->read4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_ACCELERATION, &_data32) == COMM_SUCCESS)
     g_goal_acceleration = _data32;
-  if (g_curr_mode != MODE_TORQUE_CTRL && g_packet_handler->read2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_TORQUE, &_data16) == COMM_SUCCESS)
-    g_goal_torque = _data16;
+  if (g_curr_mode != MODE_CURRENT_CTRL && g_packet_handler->read2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, &_data16) == COMM_SUCCESS)
+    g_goal_current = _data16;
 
   //        0         1         2         3         4         5         6         7  
   //        012345678901234567890123456789012345678901234567890123456789012345678901
@@ -213,7 +213,7 @@ void drawPage(void)
   printf(  "************************************************************************\n"); // 3
   printf(  "                                                                        \n"); // 4
   printf(  "  ++ MODE ++                                                            \n"); // 5
-  printf(  "   [ %c ] (C) torque control mode                                        \n", (g_curr_mode == MODE_TORQUE_CTRL)?    'V':' '); // 6
+  printf(  "   [ %c ] (C) current control mode                                       \n", (g_curr_mode == MODE_CURRENT_CTRL)?   'V':' '); // 6
   printf(  "   [ %c ] (P) current based position control mode                        \n", (g_curr_mode == MODE_POSITION_CTRL) ? 'V':' '); // 7
   printf(  "                                                                        \n"); // 8
   printf(  "  ++ TORQUE ++                                                          \n"); // 9
@@ -224,12 +224,12 @@ void drawPage(void)
   printf(  "   [ %c ] (L) Close                                                      \n", (g_curr_control == CTRL_CLOSE)?       'V':' '); // 4
   printf(  "   [ %c ] (A) Open & Close auto repeat                                   \n", (g_curr_control == CTRL_REPEAT) ?     'V':' '); // 5
   if (g_curr_mode == MODE_POSITION_CTRL)
-    printf("   [ %c ] (G) go to goal position                                        \n", (g_curr_control == CTRL_POSITION)?    'V':' '); // 6
+    printf("   [ %c ] (G) Go to goal position                                        \n", (g_curr_control == CTRL_POSITION)?    'V':' '); // 6
   else
     printf("                                                                        \n"); // 6
   printf(  "                                                                        \n"); // 7
   printf(  "  ++ PARAMETERS ++                                                      \n"); // 8
-  printf(  "   goal torque       [ %4d / %4d ]                                    \n", (short)g_goal_torque, MAX_TORQUE);             // 9
+  printf(  "   goal current      [ %4d / %4d ]                                    \n", (short)g_goal_current, MAX_CURRENT);    // 9
   if (g_curr_mode == MODE_POSITION_CTRL)
   {
     printf("   goal velocity     [ %4d / %4d ]                                    \n", g_goal_velocity, MAX_VELOCITY);         // 02
@@ -243,21 +243,21 @@ void drawPage(void)
 
 void moveCursorUp()
 {
-  if (g_curr_row == ROW_GOAL_TORQUE)
+  if (g_curr_row == ROW_GOAL_CURRENT)
     g_curr_col = COL_CHECK;
 
-  if (g_curr_mode == MODE_TORQUE_CTRL)
+  if (g_curr_mode == MODE_CURRENT_CTRL)
   {
     if (g_curr_row == ROW_TORQUE_ON_OFF ||
       g_curr_row == ROW_CTRL_OPEN)
     {
       g_curr_row -= 3;
     }
-    else if (g_curr_row == ROW_GOAL_TORQUE)
+    else if (g_curr_row == ROW_GOAL_CURRENT)
     {
       g_curr_row -= 4;
     }
-    else if (g_curr_row != ROW_MODE_TORQUE)
+    else if (g_curr_row != ROW_MODE_CURRENT)
     {
       g_curr_row--;
     }
@@ -266,11 +266,11 @@ void moveCursorUp()
   {
     if (g_curr_row == ROW_TORQUE_ON_OFF ||
       g_curr_row == ROW_CTRL_OPEN ||
-      g_curr_row == ROW_GOAL_TORQUE)
+      g_curr_row == ROW_GOAL_CURRENT)
     {
       g_curr_row -= 3;
     }
-    else if (g_curr_row != ROW_MODE_TORQUE)
+    else if (g_curr_row != ROW_MODE_CURRENT)
     {
       g_curr_row--;
     }
@@ -281,7 +281,7 @@ void moveCursorUp()
 
 void moveCursorDown()
 {
-  if (g_curr_mode == MODE_TORQUE_CTRL)
+  if (g_curr_mode == MODE_CURRENT_CTRL)
   {
     if (g_curr_row == ROW_CTRL_REPEAT)
       g_curr_col = COL_VALUE;
@@ -295,7 +295,7 @@ void moveCursorDown()
     {
       g_curr_row += 4;
     }
-    else if (g_curr_row != ROW_GOAL_TORQUE)
+    else if (g_curr_row != ROW_GOAL_CURRENT)
     {
       g_curr_row++;
     }
@@ -366,10 +366,10 @@ void checkValue()
       if (g_is_torque_on == true)
         g_packet_handler->write1ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_TORQUE_ENABLE, 1);
 
-      // set goal torque
-      if ((short)g_goal_torque < 0)
-        g_goal_torque = (-1) * g_goal_torque;
-      g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_TORQUE, g_goal_torque);
+      // set goal current
+      if ((short)g_goal_current < 0)
+        g_goal_current = (-1) * g_goal_current;
+      g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, g_goal_current);
 
       if (g_curr_control == CTRL_REPEAT)
       {
@@ -387,15 +387,15 @@ void checkValue()
 #endif
       drawPage();
 
-      gotoCursor(ROW_MODE_TORQUE, g_curr_col);
+      gotoCursor(ROW_MODE_CURRENT, g_curr_col);
       printf(" ");
       gotoCursor(g_curr_row, g_curr_col);
       printf("V");
     }
   }
-  else if (g_curr_row == ROW_MODE_TORQUE)
+  else if (g_curr_row == ROW_MODE_CURRENT)
   {
-    if (g_curr_mode != MODE_TORQUE_CTRL)
+    if (g_curr_mode != MODE_CURRENT_CTRL)
     {
       // auto repeat thread stop
       if (g_curr_control == CTRL_REPEAT)
@@ -414,8 +414,8 @@ void checkValue()
       Sleep(20);
 #endif
 
-      // set mode to torque control mode
-      g_packet_handler->write1ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_OPERATING_MODE, MODE_TORQUE_CTRL);
+      // set mode to current control mode
+      g_packet_handler->write1ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_OPERATING_MODE, MODE_CURRENT_CTRL);
 
 #if defined(__linux__)
       usleep(20 * 1000);
@@ -433,7 +433,7 @@ void checkValue()
         g_repeat_thread = new thread(&repeatThreadFunc, 1);
       }
 
-      g_curr_mode = MODE_TORQUE_CTRL;
+      g_curr_mode = MODE_CURRENT_CTRL;
 
       gotoCursor(0, 0);
 #if defined(__linux__)
@@ -540,7 +540,7 @@ void checkValue()
       if (g_curr_mode == MODE_POSITION_CTRL)
         g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_POSITION, MAX_POSITION);
       else
-        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_TORQUE, g_goal_torque);
+        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, g_goal_current);
       //gPacketHandler->write4ByteTxRx(gPortHandler, GRIPPER_ID, GOAL_POSITION_ADDR, MAX_POSITION);
 
       gotoCursor(g_curr_row, g_curr_col);
@@ -592,7 +592,7 @@ void checkValue()
       if (g_curr_mode == MODE_POSITION_CTRL)
         g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_POSITION, MIN_POSITION);
       else
-        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_TORQUE, -g_goal_torque);
+        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, -g_goal_current);
       //gPacketHandler->write4ByteTxRx(gPortHandler, GRIPPER_ID, GOAL_POSITION_ADDR, MIN_POSITION);
 
       gotoCursor(g_curr_row, g_curr_col);
@@ -681,27 +681,27 @@ void UpDownValue(int val)
     g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_ACCELERATION, g_goal_acceleration);
     printf("%4d", g_goal_acceleration);
   }
-  else if (g_curr_row == ROW_GOAL_TORQUE)
+  else if (g_curr_row == ROW_GOAL_CURRENT)
   {
-    g_goal_torque += val;
+    g_goal_current += val;
 
     if (g_curr_mode == MODE_POSITION_CTRL)
     {
-      if (g_goal_torque < MIN_TORQUE)
-        g_goal_torque = MIN_TORQUE;
-      else if (g_goal_torque > MAX_TORQUE)
-        g_goal_torque = MAX_TORQUE;
+      if (g_goal_current < MIN_CURRENT)
+        g_goal_current = MIN_CURRENT;
+      else if (g_goal_current > MAX_CURRENT)
+        g_goal_current = MAX_CURRENT;
     }
-    else if (g_curr_mode == MODE_TORQUE_CTRL)
+    else if (g_curr_mode == MODE_CURRENT_CTRL)
     {
-      if (g_goal_torque < -MAX_TORQUE)
-        g_goal_torque = -MAX_TORQUE;
-      else if (g_goal_torque > MAX_TORQUE)
-        g_goal_torque = MAX_TORQUE;
+      if (g_goal_current < -MAX_CURRENT)
+        g_goal_current = -MAX_CURRENT;
+      else if (g_goal_current > MAX_CURRENT)
+        g_goal_current = MAX_CURRENT;
     }
 
-    g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_TORQUE, g_goal_torque);
-    printf("%4d", (short)g_goal_torque);
+    g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, g_goal_current);
+    printf("%4d", (short)g_goal_current);
   }
 
   gotoCursor(g_curr_row, g_curr_col);
@@ -868,7 +868,7 @@ int main(int argc, char* argv[])
     }
     else if (ch == 'C' || ch == 'c')
     {
-      g_curr_row = ROW_MODE_TORQUE;
+      g_curr_row = ROW_MODE_CURRENT;
       g_curr_col = COL_CHECK;
       gotoCursor(g_curr_row, g_curr_col);
       checkValue();
