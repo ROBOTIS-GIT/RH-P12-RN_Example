@@ -540,8 +540,7 @@ void checkValue()
       if (g_curr_mode == MODE_POSITION_CTRL)
         g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_POSITION, MAX_POSITION);
       else
-        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, g_goal_current);
-      //gPacketHandler->write4ByteTxRx(gPortHandler, GRIPPER_ID, GOAL_POSITION_ADDR, MAX_POSITION);
+        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, (g_goal_current < 0)? -g_goal_current:g_goal_current);
 
       gotoCursor(g_curr_row, g_curr_col);
 #if defined(__linux__)
@@ -592,8 +591,7 @@ void checkValue()
       if (g_curr_mode == MODE_POSITION_CTRL)
         g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_POSITION, MIN_POSITION);
       else
-        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, -g_goal_current);
-      //gPacketHandler->write4ByteTxRx(gPortHandler, GRIPPER_ID, GOAL_POSITION_ADDR, MIN_POSITION);
+        g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, (g_goal_current < 0)? g_goal_current:-g_goal_current);
 
       gotoCursor(g_curr_row, g_curr_col);
 #if defined(__linux__)
@@ -613,6 +611,7 @@ void checkValue()
     {
       printf(" ");
       g_curr_control = CTRL_NONE;
+      g_flag_goal_position = false;
     }
     else
     {
@@ -910,13 +909,6 @@ int main(int argc, char* argv[])
         gotoCursor(g_curr_row, g_curr_col);
         checkValue();
       }
-    }
-    else if (ch == '1')
-    {
-      gotoCursor(24, 3);
-      g_packet_handler->read1ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_OPERATING_MODE, &_mode);
-      printf("mode : %d", _mode);
-      gotoCursor(g_curr_row, g_curr_col);
     }
   }
 
