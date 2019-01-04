@@ -41,9 +41,9 @@ using namespace std;
 #define ROW_CTRL_REPEAT         15
 #define ROW_CTRL_GOAL_POSITION  16
 
-#define ROW_GOAL_CURRENT        19
-#define ROW_GOAL_VELOCITY       20
-#define ROW_GOAL_ACCELERATION   21
+#define ROW_GOAL_PWM            19
+#define ROW_GOAL_CURRENT        20
+#define ROW_GOAL_VELOCITY       21
 #define ROW_GOAL_POSITION       22
 
 /* COLS */
@@ -52,25 +52,25 @@ using namespace std;
 
 /* CONTROL TABLE ADDRESS */
 #define ADDR_OPERATING_MODE     11
-#define ADDR_TORQUE_ENABLE      562
-#define ADDR_GOAL_POSITION      596
-#define ADDR_GOAL_VELOCITY      600
-#define ADDR_GOAL_CURRENT       604
-#define ADDR_GOAL_ACCELERATION  606
-#define ADDR_MOVING             610
+#define ADDR_TORQUE_ENABLE      512
+#define ADDR_GOAL_PWM           548
+#define ADDR_GOAL_CURRENT       550
+#define ADDR_GOAL_VELOCITY      552
+#define ADDR_GOAL_POSITION      564
+#define ADDR_MOVING             570
 
 /* VALUE LIMIT */
 #define MIN_POSITION            0
 #define MAX_POSITION            1150
 
-#define MIN_ACCELERATION        0
-#define MAX_ACCELERATION        1023
+#define MIN_PWM                 0
+#define MAX_PWM                 2009
 
 #define MIN_VELOCITY            0
-#define MAX_VELOCITY            1023
+#define MAX_VELOCITY            2970
 
 #define MIN_CURRENT             0
-#define MAX_CURRENT             820
+#define MAX_CURRENT             1984
 
 
 #define PROTOCOL_VERSION        2.0
@@ -112,9 +112,9 @@ bool g_flag_auto_repeat   = false;
 bool g_flag_repeat_thread = false;
 
 int g_goal_position       = 740;
-int g_goal_velocity       = 0;
-int g_goal_acceleration   = 0;
-int g_goal_current        = 30;
+int g_goal_velocity       = 2970;
+int g_goal_pwm            = 2009;
+int g_goal_current        = 350;
 
 dynamixel::PacketHandler  *g_packet_handler = NULL;
 dynamixel::PortHandler    *g_port_handler   = NULL;
@@ -200,41 +200,41 @@ void drawPage(void)
   //  g_goal_position = data32;
   if (g_packet_handler->read4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_VELOCITY, &_data32) == COMM_SUCCESS)
     g_goal_velocity = _data32;
-  if (g_packet_handler->read4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_ACCELERATION, &_data32) == COMM_SUCCESS)
-    g_goal_acceleration = _data32;
+  if (g_packet_handler->read2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_PWM, &_data16) == COMM_SUCCESS)
+    g_goal_pwm = _data16;
   if (g_curr_mode != MODE_CURRENT_CTRL && g_packet_handler->read2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, &_data16) == COMM_SUCCESS)
     g_goal_current = _data16;
 
   //        0         1         2         3         4         5         6         7  
   //        012345678901234567890123456789012345678901234567890123456789012345678901
   printf(  "                                                                        \n"); // 00
-  printf(  "************************************************************************\n"); // 1
-  printf(  "*                          RH-P12-RN Example                           *\n"); // 2
-  printf(  "************************************************************************\n"); // 3
-  printf(  "                                                                        \n"); // 4
-  printf(  "  ++ MODE ++                                                            \n"); // 5
-  printf(  "   [ %c ] (C) current control mode                                       \n", (g_curr_mode == MODE_CURRENT_CTRL)?   'V':' '); // 6
-  printf(  "   [ %c ] (P) current based position control mode                        \n", (g_curr_mode == MODE_POSITION_CTRL) ? 'V':' '); // 7
-  printf(  "                                                                        \n"); // 8
-  printf(  "  ++ TORQUE ++                                                          \n"); // 9
-  printf(  "   [ %c ] (T) torque ON / OFF                                            \n", (g_is_torque_on)?                     'V':' '); // 01
-  printf(  "                                                                        \n"); // 1
-  printf(  "  ++ CONTROL ++                                                         \n"); // 2
-  printf(  "   [ %c ] (O) Open                                                       \n", (g_curr_control == CTRL_OPEN) ?       'V':' '); // 3
-  printf(  "   [ %c ] (L) Close                                                      \n", (g_curr_control == CTRL_CLOSE)?       'V':' '); // 4
-  printf(  "   [ %c ] (A) Open & Close auto repeat                                   \n", (g_curr_control == CTRL_REPEAT) ?     'V':' '); // 5
+  printf(  "************************************************************************\n"); //  1
+  printf(  "*                         RH-P12-RN(A) Example                         *\n"); //  2
+  printf(  "************************************************************************\n"); //  3
+  printf(  "                                                                        \n"); //  4
+  printf(  "  ++ MODE ++                                                            \n"); //  5
+  printf(  "   [ %c ] (C) current control mode                                       \n", (g_curr_mode == MODE_CURRENT_CTRL)?   'V':' '); //  6
+  printf(  "   [ %c ] (P) current based position control mode                        \n", (g_curr_mode == MODE_POSITION_CTRL) ? 'V':' '); //  7
+  printf(  "                                                                        \n"); //  8
+  printf(  "  ++ TORQUE ++                                                          \n"); //  9
+  printf(  "   [ %c ] (T) torque ON / OFF                                            \n", (g_is_torque_on)?                     'V':' '); // 10
+  printf(  "                                                                        \n"); //  1
+  printf(  "  ++ CONTROL ++                                                         \n"); //  2
+  printf(  "   [ %c ] (O) Open                                                       \n", (g_curr_control == CTRL_OPEN) ?       'V':' '); //  3
+  printf(  "   [ %c ] (L) Close                                                      \n", (g_curr_control == CTRL_CLOSE)?       'V':' '); //  4
+  printf(  "   [ %c ] (A) Open & Close auto repeat                                   \n", (g_curr_control == CTRL_REPEAT) ?     'V':' '); //  5
   if (g_curr_mode == MODE_POSITION_CTRL)
-    printf("   [ %c ] (G) Go to goal position                                        \n", (g_curr_control == CTRL_POSITION)?    'V':' '); // 6
+    printf("   [ %c ] (G) Go to goal position                                        \n", (g_curr_control == CTRL_POSITION)?    'V':' '); //  6
   else
-    printf("                                                                        \n"); // 6
-  printf(  "                                                                        \n"); // 7
-  printf(  "  ++ PARAMETERS ++                                                      \n"); // 8
-  printf(  "   goal current      [ %4d / %4d ]                                    \n", (short)g_goal_current, MAX_CURRENT);    // 9
+    printf("                                                                        \n"); //  6
+  printf(  "                                                                        \n"); //  7
+  printf(  "  ++ PARAMETERS ++                                                      \n"); //  8
+  printf(  "   goal PWM          [ %4d / %4d ]                                    \n", g_goal_pwm, MAX_PWM);                   //  9
+  printf(  "   goal current      [ %4d / %4d ]                                    \n", (short)g_goal_current, MAX_CURRENT);    // 20
   if (g_curr_mode == MODE_POSITION_CTRL)
   {
-    printf("   goal velocity     [ %4d / %4d ]                                    \n", g_goal_velocity, MAX_VELOCITY);         // 02
-    printf("   goal acceleration [ %4d / %4d ]                                    \n", g_goal_acceleration, MAX_ACCELERATION); // 1
-    printf("   goal position     [ %4d / %4d ]                                    \n", g_goal_position, MAX_POSITION);         // 2
+    printf("   goal velocity     [ %4d / %4d ]                                    \n", g_goal_velocity, MAX_VELOCITY);         //  1
+    printf("   goal position     [ %4d / %4d ]                                    \n", g_goal_position, MAX_POSITION);         //  2
   }
   printf("\n");
 
@@ -243,7 +243,7 @@ void drawPage(void)
 
 void moveCursorUp()
 {
-  if (g_curr_row == ROW_GOAL_CURRENT)
+  if (g_curr_row == ROW_GOAL_PWM)
     g_curr_col = COL_CHECK;
 
   if (g_curr_mode == MODE_CURRENT_CTRL)
@@ -253,7 +253,7 @@ void moveCursorUp()
     {
       g_curr_row -= 3;
     }
-    else if (g_curr_row == ROW_GOAL_CURRENT)
+    else if (g_curr_row == ROW_GOAL_PWM)
     {
       g_curr_row -= 4;
     }
@@ -266,7 +266,7 @@ void moveCursorUp()
   {
     if (g_curr_row == ROW_TORQUE_ON_OFF ||
       g_curr_row == ROW_CTRL_OPEN ||
-      g_curr_row == ROW_GOAL_CURRENT)
+      g_curr_row == ROW_GOAL_PWM)
     {
       g_curr_row -= 3;
     }
@@ -669,16 +669,16 @@ void UpDownValue(int val)
     g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_VELOCITY, g_goal_velocity);
     printf("%4d", g_goal_velocity);
   }
-  else if (g_curr_row == ROW_GOAL_ACCELERATION)
+  else if (g_curr_row == ROW_GOAL_PWM)
   {
-    g_goal_acceleration += val;
-    if (g_goal_acceleration < MIN_ACCELERATION)
-      g_goal_acceleration = MIN_ACCELERATION;
-    else if (g_goal_acceleration > MAX_ACCELERATION)
-      g_goal_acceleration = MAX_ACCELERATION;
+    g_goal_pwm += val;
+    if (g_goal_pwm < MIN_PWM)
+      g_goal_pwm = MIN_PWM;
+    else if (g_goal_pwm > MAX_PWM)
+      g_goal_pwm = MAX_PWM;
     
-    g_packet_handler->write4ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_ACCELERATION, g_goal_acceleration);
-    printf("%4d", g_goal_acceleration);
+    g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_PWM, g_goal_pwm);
+    printf("%4d", g_goal_pwm);
   }
   else if (g_curr_row == ROW_GOAL_CURRENT)
   {
@@ -725,7 +725,7 @@ int main(int argc, char* argv[])
   
   printf(  "                                                                        \n");
   printf(  "************************************************************************\n");
-  printf(  "*                          RH-P12-RN Example                           *\n");
+  printf(  "*                         RH-P12-RN(A) Example                         *\n");
   printf(  "************************************************************************\n");
 
   char *devName = (char*)DEVICE_NAME;
@@ -781,6 +781,9 @@ int main(int argc, char* argv[])
   g_packet_handler->read1ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_OPERATING_MODE, &_mode);
   g_curr_mode = (MODE)_mode;
 
+  if (g_curr_mode == MODE_POSITION_CTRL)
+    g_packet_handler->write2ByteTxRx(g_port_handler, GRIPPER_ID, ADDR_GOAL_CURRENT, g_goal_current);
+  
   drawPage();
 
   while (true)
