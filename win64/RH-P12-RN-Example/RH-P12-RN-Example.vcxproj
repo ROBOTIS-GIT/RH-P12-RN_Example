@@ -23,7 +23,7 @@
     <ProjectGuid>{1CC6F93A-B89E-4696-BA93-781A5AACC805}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>RHP12RNExample</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
